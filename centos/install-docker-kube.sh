@@ -90,11 +90,12 @@ gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 exclude=kubelet kubeadm kubectl
 EOF
 
-sudo yum clean all && sudo yum -y makecache
-sudo yum -y install epel-release vim git curl wget kubelet kubeadm kubectl --disableexcludes=kubernetes
+sudo setenforce 0
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
 
 sudo systemctl enable --now kubelet
-systemctl start kubelet
 
 # Configure NetworkManager before attempting to use Calico networking.
 cat >>/etc/NetworkManager/conf.d/calico.conf<<EOF
