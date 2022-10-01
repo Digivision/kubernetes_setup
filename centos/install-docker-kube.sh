@@ -66,8 +66,8 @@ sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 sudo systemctl start docker
 
 # Install containerd
-sudo apt update
-sudo apt install -y containerd.io
+sudo yum update
+sudo yum install -y containerd.io
 
 # Configure containerd and start service
 sudo su -
