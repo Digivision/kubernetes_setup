@@ -90,7 +90,8 @@ gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 exclude=kubelet kubeadm kubectl
 EOF
 
-sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+sudo yum clean all && sudo yum -y makecache
+sudo yum -y install epel-release vim git curl wget kubelet kubeadm kubectl --disableexcludes=kubernetes
 
 sudo systemctl enable --now kubelet
 systemctl start kubelet
@@ -100,6 +101,8 @@ cat >>/etc/NetworkManager/conf.d/calico.conf<<EOF
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:tunl*
 EOF
+kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml 
+kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
 
 # Configure persistent loading of modules
 sudo tee /etc/modules-load.d/containerd.conf <<EOF
