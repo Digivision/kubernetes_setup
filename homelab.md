@@ -268,13 +268,14 @@ Tạo file master-worker.yml trong /etc/ansible:
       args:
         chdir: $HOME
         creates: cluster_initialized.txt
-    - name: Copy kube-flannel-v0.16.3.yml
-      copy:
-        src: ../kube-flannel-v0.16.3.yml
-        dest: /home/ci/kube-flannel-v0.16.3.yml
-        owner: ci
-        group: ci
-        mode: '0644'
+    
+    - name: download Flannel setup file
+      get_url:
+        url: https://raw.githubusercontent.com/Digivision/kubernetes_setup/main/kube-flannel-v0.16.3.yml
+        dest: /etc/ansible/kube-flannel-v0.16.3.yml
+        validate_certs: no # to not validate the SSL
+        force: yes # to force the change
+        mode: "0644"
 
     - name: Deploy Flannel network
       shell: kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f kube-flannel-v0.16.3.yml
@@ -314,12 +315,12 @@ Tạo file master-worker.yml trong /etc/ansible:
         remote_src: yes
         owner: kube
 
-    - name: install Pod network
-      become: yes
-      become_user: kube
-      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-      args:
-        chdir: $HOME
+    #- name: install Pod network
+    #-  become: yes
+    #-  become_user: kube
+    #-  shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+    #-  args:
+    #-    chdir: $HOME
 
     - name: Get the token for joining the worker nodes
       become: yes

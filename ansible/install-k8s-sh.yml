@@ -1,0 +1,25 @@
+- hosts: "masters, workers"
+  remote_user: kube
+  become: true
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+     - name: Download zsh installer
+       get_url:
+         url: https://raw.githubusercontent.com/Digivision/kubernetes_setup/main/centos/install-docker-kube.sh
+         dest: /etc/install-docker-kube.sh
+         validate_certs: no # to not validate the SSL
+         force: yes # to force the change
+         mode: "0555"
+
+     - name: Execute the shellbash file
+       shell: /etc/install-docker-kube.sh
+       become: true
+
+     - name: Remove the file
+       file: 
+         path: /etc/install-docker-kube.sh
+         state: absent

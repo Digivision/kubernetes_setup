@@ -1,0 +1,80 @@
+- hosts: masters
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: kubeadm init --control-plane-endpoint=192.168.1.20:6443 --upload-certs --apiserver-advertise-address=192.168.1.20 --pod-network-cidr=10.244.0.0/16 --cri-socket=unix:///var/run/containerd/containerd.sock
+      args:
+        chdir: $HOME
+        creates: cluster_initialized.txt
+    
+    - name: create .kube directory
+      become: yes
+      become_user: kube
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: Copy /etc/kubernetes/admin.conf to user home directory
+      become_user: root
+      become_method: sudo
+      become: true
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: $HOME/.kube/config
+        remote_src: yes
+        mode: '0644'
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: $HOME/.kube/config
+        remote_src: yes
+        owner: kube
+
+    - name: install Pod network
+      become: yes
+      become_user: kube
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      args:
+        chdir: $HOME
+
+    - name: Deploy Flannel network
+      shell: kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+    - name: Get the token for joining the worker nodes
+      become: yes
+      become_user: kube
+      shell: kubeadm token create  --print-join-command
+      register: kubernetes_join_command
+
+    - debug:
+        msg: "{{ kubernetes_join_command.stdout }}"
+    #This part is not correct in the origin doc, have to Push 2 space to the right
+    
+    - name: Copy join command to local file.
+      become: yes
+      local_action: copy content="{{ kubernetes_join_command.stdout_lines[0] }}" dest="/tmp/kubernetes_join_command" mode=0777
+   
+    - name: Restart kubelet service
+      service:
+        name: kubelet
+        daemon-reload: yes
+        state: restarted
+
+- hosts: workers
+  become: yes
+  gather_facts: yes
+
+  tasks:
+   - name: Copy join command from Ansiblehost to the worker nodes.
+     become: yes
+     copy:
+       src: /tmp/kubernetes_join_command
+       dest: /tmp/kubernetes_join_command
+       mode: 0777
+
+   - name: Join the Worker nodes to the cluster.
+     become: yes
+     command: sh /tmp/kubernetes_join_command
+     register: joined_or_not
