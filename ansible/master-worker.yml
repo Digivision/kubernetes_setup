@@ -26,21 +26,14 @@
         mode: '0644'
 
     - name: copies admin.conf to user's kube config
+      become_user: root
+      become_method: sudo
+      become: true
       copy:
         src: /etc/kubernetes/admin.conf
         dest: $HOME/.kube/config
         remote_src: yes
         owner: kube
-
-    - name: install Pod network
-      become: yes
-      become_user: kube
-      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-      args:
-        chdir: $HOME
-
-    - name: Deploy Flannel network
-      shell: kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
 
     - name: Get the token for joining the worker nodes
       become: yes
